@@ -30,6 +30,7 @@ mysql_engine_2
 #data extract
 df = pd.read_sql_query("""select * from customer_joining_info;""",mysql_engine)
 print(df)
+
 #data load
 df.to_sql(
         name = 'customer_joining_info',
@@ -44,6 +45,7 @@ df.to_sql(
 #data extract
 df = pd.read_sql_query("""select * from customer_transactions;""",mysql_engine)
 print(df)
+
 #data load
 df.to_sql(
         name = 'customer_transactions',
@@ -58,6 +60,7 @@ df.to_sql(
 #data extract
 df = pd.read_sql_query("""select * from area;""",mysql_engine)
 print(df)
+
 #data load
 df.to_sql(
         name = 'area',
@@ -72,6 +75,7 @@ df.to_sql(
 #data extract
 df = pd.read_sql_query("""select * from region;""",mysql_engine)
 print(df)
+
 #data load
 df.to_sql(
         name = 'region',

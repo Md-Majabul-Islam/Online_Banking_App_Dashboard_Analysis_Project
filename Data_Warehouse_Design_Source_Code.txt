@@ -1,0 +1,83 @@
+#libraries
+import sqlalchemy as sqa
+import pandas as pd
+import pyodbc
+import pymysql
+
+#'online_banking'live database connections
+username = 'root'
+password = '12345'
+host = 'localhost'
+port = '3306'
+database = 'online_banking'
+
+url = 'mysql+pymysql://{0}:{1}@{2}:{3}/{4}'.format(username, password, host, port, database)
+mysql_engine = sqa.create_engine(url)
+mysql_engine
+
+
+#'online_banking_wh' warehouse database connections
+username = 'root'
+password = '12345'
+host = 'localhost'
+port = '3306'
+database = 'online_banking_wh'
+
+url = 'mysql+pymysql://{0}:{1}@{2}:{3}/{4}'.format(username, password, host, port, database)
+mysql_engine_2 = sqa.create_engine(url)
+mysql_engine_2
+
+#data extract
+df = pd.read_sql_query("""select * from customer_joining_info;""",mysql_engine)
+print(df)
+#data load
+df.to_sql(
+        name = 'customer_joining_info',
+        con = mysql_engine_2,
+        if_exists = 'replace',
+        index = False,
+        method = 'multi',
+        chunksize = 1000
+)
+
+
+#data extract
+df = pd.read_sql_query("""select * from customer_transactions;""",mysql_engine)
+print(df)
+#data load
+df.to_sql(
+        name = 'customer_transactions',
+        con = mysql_engine_2,
+        if_exists = 'replace',
+        index = False,
+        method = 'multi',
+        chunksize = 1000
+)
+
+
+#data extract
+df = pd.read_sql_query("""select * from area;""",mysql_engine)
+print(df)
+#data load
+df.to_sql(
+        name = 'area',
+        con = mysql_engine_2,
+        if_exists = 'replace',
+        index = False,
+        method = 'multi',
+        chunksize = 1000
+)
+
+
+#data extract
+df = pd.read_sql_query("""select * from region;""",mysql_engine)
+print(df)
+#data load
+df.to_sql(
+        name = 'region',
+        con = mysql_engine_2,
+        if_exists = 'replace',
+        index = False,
+        method = 'multi',
+        chunksize = 1000
+)

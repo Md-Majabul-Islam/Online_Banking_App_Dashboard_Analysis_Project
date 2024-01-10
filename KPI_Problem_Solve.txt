@@ -1,0 +1,140 @@
+
+-- 1. How many unique customers are there?
+SELECT COUNT(DISTINCT(customer_id)) FROM customer_joining_info;
+
+-- 2. How many unique customers are coming from each region?
+SELECT r.region_id, COUNT(DISTINCT(c.customer_id))  FROM customer_joining_info AS c
+JOIN region AS r ON c.region_id = r.region_id
+GROUP BY r.region_id;
+
+-- 3. How many unique customers are coming from each area?
+SELECT a.area_id, COUNT(DISTINCT(c.customer_id)) FROM customer_joining_info AS c
+JOIN area AS a ON c.area_id = a.area_id
+GROUP BY a.area_id;
+
+-- 4. What is the total amount for each transaction type?
+SELECT txn_type, SUM(txn_amount) FROM customer_transactions
+GROUP BY txn_type;
+
+-- 5. For each month - how many customers make more than 1 deposit and 1 withdrawal in a single month?
+WITH MonthlyTransactions AS (
+    SELECT
+        c.customer_id,
+        EXTRACT(MONTH FROM ct.txn_date) AS month,
+        COUNT(DISTINCT CASE WHEN ct.txn_type = 'deposit' THEN ct.txn_date END) AS deposit_count,
+        COUNT(DISTINCT CASE WHEN ct.txn_type = 'withdrawal' THEN ct.txn_date END) AS withdrawal_count
+    FROM
+        customer_joining_info c
+            JOIN customer_transactions ct ON c.customer_id = ct.customer_id
+    GROUP BY c.customer_id, month
+)
+SELECT
+    month,
+    COUNT(DISTINCT CASE WHEN deposit_count > 1 AND withdrawal_count > 1 THEN customer_id END) AS customers_count
+FROM MonthlyTransactions
+GROUP BY month;
+
+
+-- 6. What is closing balance for each customer?
+WITH CustomerBalances AS (
+    SELECT
+        customer_id,
+        SUM(CASE WHEN txn_type = 'deposit' THEN txn_amount ELSE -txn_amount END) AS closing_balance
+    FROM
+        customer_transactions
+    GROUP BY customer_id
+)
+
+SELECT
+    cj.customer_id,
+    cb.closing_balance
+FROM
+    customer_joining_info cj
+        JOIN CustomerBalances cb ON cj.customer_id = cb.customer_id;
+
+-- 7. What is the closing balance for each customer at the end of the month?
+WITH MonthlyTransactions AS (
+    SELECT
+        c.customer_id,
+        EXTRACT(MONTH FROM ct.txn_date) AS month,
+        SUM(CASE WHEN ct.txn_type = 'deposit' THEN ct.txn_amount ELSE -ct.txn_amount END) AS monthly_balance
+    FROM
+        customer_joining_info c
+            JOIN customer_transactions ct ON c.customer_id = ct.customer_id
+    GROUP BY
+        c.customer_id, month
+)
+
+SELECT
+    mt.customer_id,
+    mt.month,
+    MAX(mt.monthly_balance) AS closing_balance
+FROM
+    MonthlyTransactions mt
+GROUP BY mt.customer_id, mt.month;
+
+
+
+#8. Please show the latest 5 days total withdraw amount.
+
+
+select t.ranks, sum(t.txn_amount), t.td
+from
+    (select  txn_date td,dense_rank() over ( order by txn_date desc)as ranks,txn_amount,txn_type
+     from customer_transactions
+     where txn_type='withdrawal'
+     order by txn_date desc) as t
+where t.ranks in(1,2,3,4,5)
+group by t.ranks,t.td;
+
+
+
+#9  Find out the total deposit amount for every five days consecutive series. You can assume 1 week = 5 days.
+#Please show the result week wise total amount
+
+
+select t.week_number, sum(t.txn_amount)
+from
+    (SELECT
+         txn_date,
+         txn_amount,
+         floor(datediff(txn_date, (select MIN(txn_date) from customer_transactions)) / 5)+1 as week_number
+     from
+         customer_transactions
+     where
+             txn_type = 'deposit'
+     order by txn_date) as t
+group by t.week_number;
+
+
+
+
+#10. Plase compare every weeks total deposit amount by the following previous wweek.
+select t2.wkn as weak,
+       ifnull(LAG(t2.tca) OVER (ORDER BY t2.wkn),0) AS previous_week_amount,
+       t2.tca as cuurent_weak_amount ,
+       t2.tca - t2.previous_week_amount1 as compare
+from
+    (
+        SELECT
+            t.week_number wkn,
+            ifnull(LAG(t.current_total_amount) OVER (ORDER BY t.week_number),0) AS previous_week_amount1,
+            t.current_total_amount tca
+        FROM
+            (
+                SELECT
+                        floor(datediff(txn_date, (SELECT MIN(txn_date) FROM customer_transactions)) / 5) + 1 AS week_number,
+                        SUM(txn_amount) AS current_total_amount
+                FROM
+                    customer_transactions
+                WHERE
+                        txn_type = 'deposit'
+                GROUP BY
+                    week_number
+                #order by week_number
+            ) as t
+        ORDER BY
+            t.week_number) as t2;
+
+
+
